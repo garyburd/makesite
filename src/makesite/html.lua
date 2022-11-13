@@ -56,11 +56,11 @@ function M.map(list, fn, sep)
       mapped[n] = x
     end
   end
+  if n == 0 then
+    return false
+  end
   sep = sep and M.render(sep) or ''
   return function(encode, write)
-    if n == 0 then
-      return
-    end
     encode(mapped[1])
     for i = 2, n do
       write(sep)
@@ -69,29 +69,34 @@ function M.map(list, fn, sep)
   end
 end
 
+local attr_escapes = {
+  ['&'] = '&amp;',
+  ['"'] = '&quot;',
+}
+
 local function write_attrs(elt, write)
-  -- Sort keys by name for stable output.
-  local keys = {}
-  for key, value in pairs(elt) do
-    if type(key) == 'string' and value then
-      keys[#keys + 1] = key
+  -- Sort attribute names for stable output.
+  -- Skip attributes with falsy values.
+  local names = {}
+  for name, value in pairs(elt) do
+    if type(name) == 'string' and value then
+      names[#names + 1] = name
     end
   end
-  table.sort(keys)
+  table.sort(names)
 
-  for _, key in ipairs(keys) do
-    local value = elt[key]
-    local attr = key:gsub('_', '-')
+  for _, name in ipairs(names) do
+    local value = elt[name]
+    name = name:gsub('_', '-')
     if value == true then
-      write(string.format(' %s', attr))
+      write(string.format(' %s', name))
     else
-      value = tostring(value)
-      if value:find('["\']') then
-        write(string.format(' %s="%s"', attr, (value:gsub('"', '&quot;'))))
-      elseif value:find('[=<> \n\r\t\b\f]') then
-        write(string.format(" %s='%s'", attr, value))
+      value = tostring(value):gsub('[&"]', attr_escapes)
+      if #value > 0 and not value:find('[ \t\r\n"\'=<>`]') then
+        -- unquoted syntax allowed.
+        write(string.format(' %s=%s', name, value))
       else
-        write(string.format(' %s=%s', attr, value))
+        write(string.format(' %s="%s"', name, value))
       end
     end
   end

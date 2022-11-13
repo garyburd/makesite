@@ -28,9 +28,10 @@ end
 function M.srcset(page, glob, img)
   local srcset = {}
   local maxw, maxh, maxsrc = 0, 0, nil
-  for fname in path.glob(path:tofile(page, glob)) do
+  local fglob = path.tofile(page, glob)
+  for fname in path.glob(fglob) do
     local w, h = M.wh(fname)
-    local src = path:tourl(page, fname)
+    local src = path.tourl(page, fname)
     srcset[#srcset + 1] = string.format('%s %dw', src, w)
     if w > maxw then
       maxw = w
@@ -38,7 +39,9 @@ function M.srcset(page, glob, img)
       maxsrc = src
     end
   end
-  assert(maxsrc, 'no images found matching ' .. glob)
+  if not maxsrc then
+    error('no image found for pattern ' .. fglob)
+  end
   img.src = maxsrc
   img.width = maxw
   img.height = maxh

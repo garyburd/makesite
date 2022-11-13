@@ -35,11 +35,8 @@ end
 
 local function path_iter(f)
   local line = f:read('l')
-  if not line then
-    return nil
-  end
-  if line:find('^%./') then
-    line = line:sub(3)
+  if line and line:find('^%./') then
+    return line:sub(3)
   end
   return line
 end

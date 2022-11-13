@@ -32,10 +32,8 @@ local function tprint(tbl, indent)
 end
 
 local function expect(got, want)
-  got = tostring(got)
-  want = tostring(want)
   if got ~= want then
-    error(string.format('got: %q, want %q', got, want), 2)
+    error(string.format('got: %q, want %q', tostring(got), tostring(want)), 2)
   end
 end
 
@@ -52,15 +50,21 @@ end
 local Layout = {}
 Layout.__index = Layout
 
-function Layout:message()
+function Layout:line(arg, _, line)
+  local want = tonumber(arg)
+  expect(line, want)
+  expect(debug.getinfo(2).currentline, want)
+end
+
+function Layout:message(arg, _, line)
   return self.page.message or '!MISSING!'
 end
 
-function Layout.run(page)
+function Layout.run(p)
   local l = setmetatable({
-    page = page,
+    page = p,
   }, Layout)
-  local content = page.content(l)
+  local content = p.content(l)
   local tree = html.HTML {
     html.BODY { content },
   }
@@ -76,7 +80,7 @@ local function run()
   )
   expect(
     html.render(html.DIV { a1 = "'", a2 = '"', a3 = '<', a4 = 'foo', a5 = true }),
-    [[<div a1="'" a2="&quot;" a3='<' a4=foo a5></div>]]
+    [[<div a1="'" a2=&quot; a3="<" a4=foo a5></div>]]
   )
   expect(html.render(html.raw('<>')), [[<>]])
   expect(html.render(html.list { '1', html.P { '2' }, html.P { 3 }, 4 }), [[1<p>2</p><p>3</p>4]])
@@ -105,29 +109,17 @@ local function run()
   expect(path.tofile('dir/index.html', '/index.html'), 'index.html')
 
   local src = [==[
-${
-  -- a comment with }, [[, ', and "
-  a = '}',
-  b = "}",
-  c = [=[}]=],
-  d = { nested = "}" },
-  e = '\\\\',
-  f = '\'',
-  g = "\"",
-  q = false and x[y],
-  message = "world",
-}
-Hello $message()!
-]==]
+[=[
+  message = 'world'
+  -- comment
+  count = 10
+]=]
+[[line 6]]Hello [[message]]![[line 6]]
+[[line 7]]]==]
 
   local p = page.loadstring(src)
-  expect(p.a, '}')
-  expect(p.b, '}')
-  expect(p.c, '}')
-  expect(p.d.nested, '}')
-  expect(p.e, '\\\\')
-  expect(p.f, "'")
-  expect(p.g, '"')
+  expect(p.message, 'world')
+  expect(p.count, 10)
   expect(html.render(Layout.run(p)), '<html><body>Hello world!\n</body></html>\n')
 
   --p = page.load('test/data/page.x.html')
