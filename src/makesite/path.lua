@@ -1,36 +1,39 @@
-local M = {}
+local M = {
+  site = 'site',
+}
 
-function M.tofile(base, p)
-  if p:find('^/') then
-    return p:sub(2)
-  end
-  local d = base:match('.*/')
-  if not d then
-    return p
-  end
-  return d .. p
+-- Return path in site directory given URL path.
+function M.tosite(path)
+  assert(path:byte(1) == 47) -- slash
+  return M.site .. path
 end
 
-function M.tourl(base, p)
-  if p == 'index.html' then
-    return '/'
-  end
-  if p:sub(-11) == '/index.html' then
-    p = p:sub(1, -11)
-  end
+-- Return URL path given a path in a subdirectory.
+function M.tourl(file)
+  return assert(file:match('^[^/]+(/.*)'))
+end
 
+function M.resolve(base, path)
+  if not path:find('^/') then
+    path = assert(base:match('.*/')) .. path
+  end
+  return path
+end
+
+-- Return URL path from base to target.
+function M.ref(base, target)
+  if target:find('/index%.html$') then
+    target = target:sub(1, -11)
+  end
   local d = base:match('.*/')
-  if not d then
-    return p
+  if target:sub(1, #d) ~= d then
+    return target
   end
-  if p:sub(1, #d) == d then
-    p = p:sub(#d + 1)
-    if p == '' then
-      return '.'
-    end
-    return p
+  target = target:sub(#d + 1)
+  if target == '' then
+    target = '.'
   end
-  return '/' .. p
+  return target
 end
 
 local function path_iter(f)

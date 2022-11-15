@@ -51,12 +51,13 @@ local Layout = {}
 Layout.__index = Layout
 
 function Layout:line(arg, _, line)
+  local _ = self
   local want = tonumber(arg)
   expect(line, want)
   expect(debug.getinfo(2).currentline, want)
 end
 
-function Layout:message(arg, _, line)
+function Layout:message()
   return self.page.message or '!MISSING!'
 end
 
@@ -72,15 +73,16 @@ function Layout.run(p)
 end
 
 local function run()
-  expect(html.escape('A<B>C&D'), 'A&lt;B&gt;C&amp;D')
+  --expect(html.escape('A<B>C&D'), 'A&lt;B&gt;C&amp;D')
   expect(html.render(html.HR()), '<hr>')
   expect(
     html.render(html.DIV { data_example = 20, 'foo', html.P { 'bar' }, 'quux' }),
     [[<div data-example=20>foo<p>bar</p>quux</div>]]
   )
+  expect(html.render('<>&'), '&lt;&gt;&amp;')
   expect(
-    html.render(html.DIV { a1 = "'", a2 = '"', a3 = '<', a4 = 'foo', a5 = true }),
-    [[<div a1="'" a2=&quot; a3="<" a4=foo a5></div>]]
+    html.render(html.DIV { a1 = "'", a2 = '"', a3 = '<&', a4 = 'foo', a5 = true }),
+    [[<div a1="'" a2=&quot; a3="<&amp;" a4=foo a5></div>]]
   )
   expect(html.render(html.raw('<>')), [[<>]])
   expect(html.render(html.list { '1', html.P { '2' }, html.P { 3 }, 4 }), [[1<p>2</p><p>3</p>4]])
@@ -92,21 +94,20 @@ local function run()
     '1, 2, 3'
   )
 
-  expect(path.tourl('index.html', 'img.jpg'), 'img.jpg')
-  expect(path.tourl('file.html', 'img.jpg'), 'img.jpg')
-  expect(path.tourl('dir/index.html', 'dir/img.jpg'), 'img.jpg')
-  expect(path.tourl('dir/file.html', 'dir/img.jpg'), 'img.jpg')
-  expect(path.tourl('dir/dir2/file.html', 'dir/dir2/img.jpg'), 'img.jpg')
-  expect(path.tourl('index.html', 'index.html'), '/')
-  expect(path.tourl('dir/index.html', 'index.html'), '/')
-  expect(path.tourl('dir/index.html', 'dir/index.html'), '.')
-  expect(path.tourl('dir/file.html', 'dir/index.html'), '.')
-  expect(path.tourl('dir1/file.html', 'dir2/index.html'), '/dir2/')
-  expect(path.tourl('dir1/file.html', 'dir2/file.html'), '/dir2/file.html')
-
-  expect(path.tofile('index.html', 'img.jpg'), 'img.jpg')
-  expect(path.tofile('dir/index.html', 'img.jpg'), 'dir/img.jpg')
-  expect(path.tofile('dir/index.html', '/index.html'), 'index.html')
+  expect(path.tourl('pages/file.html'), '/file.html')
+  expect(path.tosite('/file.html'), 'site/file.html')
+  expect(path.resolve('/', 'img.jpg'), '/img.jpg')
+  expect(path.resolve('/dir/', 'img.jpg'), '/dir/img.jpg')
+  expect(path.resolve('/dir/', '/img.jpg'), '/img.jpg')
+  expect(path.ref('/', '/'), '.')
+  expect(path.ref('/', '/dir/'), 'dir/')
+  expect(path.ref('/', '/other.html'), 'other.html')
+  expect(path.ref('/', '/dir/other.html'), 'dir/other.html')
+  expect(path.ref('/other.html', '/'), '.')
+  expect(path.ref('/dir/', '/dir/dir2/'), 'dir2/')
+  expect(path.ref('/dir/other.html', '/dir/'), '.')
+  expect(path.ref('/dir/', '/dir/other.html'), 'other.html')
+  expect(path.ref('/dir/', '/dir2/other.html'), '/dir2/other.html')
 
   local src = [==[
 [=[

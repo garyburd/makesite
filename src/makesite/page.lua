@@ -21,10 +21,14 @@ local function eval_header(src, file)
   end
   local iclose, eclose = src:find(string.format(']%s]', eqs), eopen + 1, true)
   if not iclose then
-    error(string.format('%s:1: closing ]%s] not found', file_file(file), eqs), 0)
+    error(string.format('%s:1: closing ]%s] not found', fix_file(file), eqs), 0)
   end
   local env = setmetatable({}, { __index = _G })
-  assert(load(src:sub(eopen + 1, iclose - 1), file, 't', env))()
+  local fn, err = load(src:sub(eopen + 1, iclose - 1), file, 't', env)
+  if not fn then
+    error(err, 0)
+  end
+  fn()
   return setmetatable(env, nil), eclose
 end
 
@@ -106,22 +110,24 @@ function M.loadstring(src, name)
   return page
 end
 
-function M.convert_filename(p)
-  local e = p:find('%.x%.html$')
-  assert(e, 'filename does not end with .x.html')
-  return p:sub(1, e - 1) .. '.html'
-end
-
 function M.load(filename)
   local page = M.loadstring(path.read(filename), '@' .. filename)
   if not page.path then
-    page.path = M.convert_filename(filename)
+    local p = path.tourl(filename)
+    if p:find('/index%.html$') then
+      p = p:sub(1, -11)
+    end
+    page.path = p
   end
   return page
 end
 
 function M.save(page, layout)
-  path.write(page.path, html.render(layout(page)))
+  local p = page.path
+  if p:byte(-1) == 47 then -- slash
+    p = p .. 'index.html'
+  end
+  path.write(path.tosite(p), html.render(layout(page)))
   page.content = nil
 end
 

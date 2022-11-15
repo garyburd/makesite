@@ -6,39 +6,35 @@ local html_escapes = {
   ['>'] = '&gt;',
 }
 
-local function escape(s)
-  return (s:gsub('[&<>]', html_escapes))
-end
-
-M.escape = escape
-
 function M.render(value)
   local n = 0
-  local out = {}
+  local result = {}
   local function write(s)
     n = n + 1
-    out[n] = s
+    result[n] = s
   end
   local function encode(v)
     if v then
       if type(v) == 'function' then
         v(encode, write)
       else
-        write(escape(tostring(v)))
+        write((tostring(v):gsub('[&><>]', html_escapes)))
       end
     end
   end
   encode(value)
-  return table.concat(out)
+  return table.concat(result)
 end
 
 function M.raw(s)
+  assert(type(s) == 'string')
   return function(_, write)
     write(s)
   end
 end
 
 function M.list(list)
+  assert(type(list) == 'table')
   return function(encode)
     for i = 1, #list do
       encode(list[i])
@@ -47,13 +43,14 @@ function M.list(list)
 end
 
 function M.map(list, fn, sep)
+  assert(type(list) == 'table')
   local n = 0
   local mapped = {}
-  for i = 1, #list do
-    local x = fn(list[i])
-    if x then
+  for i, v in ipairs(list) do
+    m = fn(v)
+    if m then
       n = n + 1
-      mapped[n] = x
+      mapped[n] = m
     end
   end
   if n == 0 then
@@ -109,6 +106,7 @@ function M.define(key, empty, nl)
   local close = string.format('</%s>', key:lower())
   local fn = function(elt)
     elt = elt or empty_elt
+    assert(type(elt) == 'table')
     return function(encode, write)
       write(open)
       write_attrs(elt, write)
