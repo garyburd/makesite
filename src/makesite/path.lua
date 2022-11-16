@@ -44,6 +44,22 @@ local function path_iter(f)
   return line
 end
 
+local cache_busters = {}
+
+function M.cachebuster(p)
+  local b = cache_busters[p]
+  if b then
+    return b
+  end
+  local prog = string.format("md5 -q '%s'", string.gsub(M.tosite(p), "'", "\\'"))
+  local f = assert(io.popen(prog, 'r'))
+  local h = assert(f:read('l'))
+  f:close()
+  b = string.format('%s?%s', p, h)
+  cache_busters[p] = b
+  return b
+end
+
 function M.find(name, dir)
   local prog = string.format(
     "find '%s' -name '%s'",
