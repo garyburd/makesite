@@ -2,5 +2,5 @@ Makesite is an experimental collection of Lua modules for statically generating 
 
 Future plans:
 
-- Documentation!
+- Write [documentation](https://garyburd.github.io/makesite/).
 - Select a better name for the project.

@@ -1,39 +1,19 @@
 local M = {
-  site = 'site',
+  dest = 'site',
 }
 
--- Return path in site directory given URL path.
-function M.tosite(path)
-  assert(path:byte(1) == 47) -- slash
-  return M.site .. path
+local slashbyte = ('/'):byte(1)
+
+-- Return path in output directory given URL path.
+function M.todest(path)
+  assert(path:byte(1) == slashbyte)
+  return M.dest .. path
 end
 
--- Return URL path given a path in a subdirectory.
-function M.tourl(file)
-  return assert(file:match('^[^/]+(/.*)'))
-end
-
-function M.resolve(base, path)
-  if not path:find('^/') then
-    path = assert(base:match('.*/')) .. path
-  end
-  return path
-end
-
--- Return URL path from base to target.
-function M.ref(base, target)
-  if target:find('/index%.html$') then
-    target = target:sub(1, -11)
-  end
-  local d = base:match('.*/')
-  if target:sub(1, #d) ~= d then
-    return target
-  end
-  target = target:sub(#d + 1)
-  if target == '' then
-    target = '.'
-  end
-  return target
+-- Return URL path given a path in the output diretory.
+function M.fromdest(file)
+  assert(file:sub(1, #M.dest) == M.dest)
+  return file:sub(#M.dest + 1)
 end
 
 local function path_iter(f)
@@ -51,7 +31,7 @@ function M.cachebuster(p)
   if b then
     return b
   end
-  local prog = string.format("md5 -q '%s'", string.gsub(M.tosite(p), "'", "\\'"))
+  local prog = string.format("md5 -q '%s'", string.gsub(M.todest(p), "'", "\\'"))
   local f = assert(io.popen(prog, 'r'))
   local h = assert(f:read('l'))
   f:close()
@@ -80,21 +60,12 @@ function M.read(filename)
   local file = assert(io.open(filename))
   local src, e = file:read('a')
   file:close()
-  assert(src, e)
-  return src
+  return assert(src, e)
 end
 
-function M.write(filename, new)
-  local file = io.open(filename)
-  if file then
-    local old = file:read('a')
-    file:close()
-    if old and old == new then
-      return
-    end
-  end
-  file = assert(io.open(filename, 'w+'))
-  assert(file:write(new))
+function M.write(filename, data)
+  local file = assert(io.open(filename, 'w+'))
+  assert(file:write(data))
   file:close()
 end
 

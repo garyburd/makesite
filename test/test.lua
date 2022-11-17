@@ -58,7 +58,7 @@ function Layout:line(arg, _, line)
 end
 
 function Layout:message()
-  return self.page.message or '!MISSING!'
+  return self.page.meta.message or '!MISSING!'
 end
 
 function Layout.run(p)
@@ -66,48 +66,55 @@ function Layout.run(p)
     page = p,
   }, Layout)
   local content = p.content(l)
-  local tree = html.HTML {
+  return html.doc {
     html.BODY { content },
   }
-  return tree
 end
 
 local function run()
+  local encode = html.encodetostring
+
   --expect(html.escape('A<B>C&D'), 'A&lt;B&gt;C&amp;D')
-  expect(html.render(html.HR()), '<hr>')
+  expect(encode(html.HR()), '<hr>')
   expect(
-    html.render(html.DIV { data_example = 20, 'foo', html.P { 'bar' }, 'quux' }),
+    encode(html.DIV { data_example = 20, 'foo', html.P { 'bar' }, 'quux' }),
     [[<div data-example=20>foo<p>bar</p>quux</div>]]
   )
-  expect(html.render('<>&'), '&lt;&gt;&amp;')
+  expect(encode('<>&'), '&lt;&gt;&amp;')
   expect(
-    html.render(html.DIV { a1 = "'", a2 = '"', a3 = '<&', a4 = 'foo', a5 = true }),
+    encode(html.DIV { a1 = "'", a2 = '"', a3 = '<&', a4 = 'foo', a5 = true }),
     [[<div a1="'" a2=&quot; a3="<&amp;" a4=foo a5></div>]]
   )
-  expect(html.render(html.raw('<>')), [[<>]])
-  expect(html.render(html.list { '1', html.P { '2' }, html.P { 3 }, 4 }), [[1<p>2</p><p>3</p>4]])
-  expect(html.render(html.HTML()), '<html></html>\n')
+  expect(encode(html.raw('<>')), [[<>]])
+  expect(encode(html.include { '1', html.P { '2' }, html.P { 3 }, 4 }), [[1<p>2</p><p>3</p>4]])
+  expect(encode(html.doc()), '<!DOCTYPE html>\n<html></html>\n')
   expect(
-    html.render(html.map({ 1, 2, 3 }, function(i)
+    encode(html.map({ 1, 2, 3 }, function(i)
       return i
     end, ', ')),
     '1, 2, 3'
   )
 
-  expect(path.tourl('pages/file.html'), '/file.html')
-  expect(path.tosite('/file.html'), 'site/file.html')
-  expect(path.resolve('/', 'img.jpg'), '/img.jpg')
-  expect(path.resolve('/dir/', 'img.jpg'), '/dir/img.jpg')
-  expect(path.resolve('/dir/', '/img.jpg'), '/img.jpg')
-  expect(path.ref('/', '/'), '.')
-  expect(path.ref('/', '/dir/'), 'dir/')
-  expect(path.ref('/', '/other.html'), 'other.html')
-  expect(path.ref('/', '/dir/other.html'), 'dir/other.html')
-  expect(path.ref('/other.html', '/'), '.')
-  expect(path.ref('/dir/', '/dir/dir2/'), 'dir2/')
-  expect(path.ref('/dir/other.html', '/dir/'), '.')
-  expect(path.ref('/dir/', '/dir/other.html'), 'other.html')
-  expect(path.ref('/dir/', '/dir2/other.html'), '/dir2/other.html')
+  local xml = html.xml
+  expect(
+    encode(xml(xml.rss { version = '2.0', xml.channel { xml.title { 'my feed' } } })),
+    '<?xml version="1.0" encoding="UTF-8" ?><rss version="2.0"><channel><title>my feed</title></channel></rss>\n'
+  )
+
+  expect(path.fromdest(path.dest .. '/file.html'), '/file.html')
+  expect(path.todest('/file.html'), 'site/file.html')
+  expect(page.new('/'):abs('img.jpg'), '/img.jpg')
+  expect(page.new('/dir/'):abs('img.jpg'), '/dir/img.jpg')
+  expect(page.new('/dir/'):abs('/img.jpg'), '/img.jpg')
+  expect(page.new('/'):rel('/'), '.')
+  expect(page.new('/'):rel('/dir/'), 'dir/')
+  expect(page.new('/'):rel('/other.html'), 'other.html')
+  expect(page.new('/'):rel('/dir/other.html'), 'dir/other.html')
+  expect(page.new('/other.html'):rel('/'), '.')
+  expect(page.new('/dir/'):rel('/dir/dir2/'), 'dir2/')
+  expect(page.new('/dir/other.html'):rel('/dir/'), '.')
+  expect(page.new('/dir/'):rel('/dir/other.html'), 'other.html')
+  expect(page.new('/dir/'):rel('/dir2/other.html'), '/dir2/other.html')
 
   local src = [==[
 [=[
@@ -118,10 +125,10 @@ local function run()
 [[line 6]]Hello [[message]]![[line 6]]
 [[line 7]]]==]
 
-  local p = page.loadstring(src)
-  expect(p.message, 'world')
-  expect(p.count, 10)
-  expect(html.render(Layout.run(p)), '<html><body>Hello world!\n</body></html>\n')
+  local p = page.loadstring('/index.html', src)
+  expect(p.meta.message, 'world')
+  expect(p.meta.count, 10)
+  expect(encode(Layout.run(p)), '<!DOCTYPE html>\n<html><body>Hello world!\n</body></html>\n')
 
   --p = page.load('test/data/page.x.html')
 

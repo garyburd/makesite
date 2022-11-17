@@ -1,6 +1,6 @@
-export LUA_PATH := ./src/?.lua;$(LUA_PATH)
+export LUA_PATH := ${CURDIR}/src/?.lua;$(LUA_PATH)
 
-.PHONY: test check coverage
+.PHONY: test check coverage docs serve
 
 test:
 	lua test/test.lua
@@ -10,4 +10,12 @@ coverage:
 	luacov
 
 check:
-	luacheck --no-color --no-redefined --std lua54 src/makesite/*.lua test/*.lua
+	luacheck --no-color --no-redefined --std lua54 src/makesite/*.lua test/*.lua dsrc/main.lua
+
+docs:
+	lua dsrc/main.lua
+
+serve:
+	python3 -m http.server --directory docs
+
+

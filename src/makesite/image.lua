@@ -28,10 +28,10 @@ end
 function M.srcset(page, glob, img)
   local srcset = {}
   local maxw, maxh, maxsrc = 0, 0, nil
-  local fglob = path.tosite(path.resolve(page, glob))
+  local fglob = path.todest(page:abs(glob))
   for fname in path.glob(fglob) do
     local w, h = M.wh(fname)
-    local src = path.ref(page, path.tourl(fname))
+    local src = page:rel(path.fromdest(fname))
     srcset[#srcset + 1] = string.format('%s %dw', src, w)
     if w > maxw then
       maxw = w

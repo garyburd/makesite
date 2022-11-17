@@ -4,17 +4,66 @@ local reqbase = (...):match('(.-)[^%.]+$')
 local path = require(reqbase .. 'path')
 local html = require(reqbase .. 'html')
 
+local atbyte = ('@'):byte(1)
+local slashbyte = ('/'):byte(1)
+
+local Page = {
+  __name = 'Page',
+  content = function()
+    return false
+  end,
+}
+Page.__index = Page
+
+function M.new(path, meta, content)
+  return setmetatable({
+    path = path,
+    meta = meta or {},
+    content = content or function()
+      return false
+    end,
+  }, Page)
+end
+
+function Page:save(layout)
+  local p = self.path
+  if p:byte(-1) == slashbyte then
+    p = p .. 'index.html'
+  end
+  assert(html.encodetofile(path.todest(p), layout(self)))
+  self.content = nil
+end
+
+function Page:abs(p)
+  if not p:find('^/') then
+    p = assert(self.path:match('.*/')) .. p
+  end
+  return p
+end
+
+function Page:rel(p)
+  local d = self.path:match('.*/')
+  if p:sub(1, #d) ~= d then
+    return p
+  end
+  p = p:sub(#d + 1)
+  if p == '' then
+    p = '.'
+  end
+  return p
+end
+
 local function fix_file(s)
   if not s then
     return '=(load)'
   end
-  if s:byte(1) == '@' then
+  if s:byte(1) == atbyte then
     return s:sub(2)
   end
   return s
 end
 
-local function eval_header(src, file)
+local function eval_meta(src, file)
   local iopen, eopen, eqs = src:find('^%[(%=*)%[')
   if not iopen then
     return {}, 1
@@ -93,42 +142,30 @@ local function eval_content(src, file, pos, ctx)
   end)
 
   local values = assert(load(chunk, file, 't'))(ctx, args)
-
-  return function(encode, write)
+  return function(write)
+    local encode = html.encode
     for i = 1, n do
       write(strings[i])
-      encode(values[i])
+      encode(write, values[i])
     end
   end
 end
 
-function M.loadstring(src, name)
-  local page, ehead = eval_header(src, name)
-  page.content = function(ctx)
+function M.loadstring(path, src, name)
+  name = name or '=(string)'
+  local meta, ehead = eval_meta(src, name)
+  local content = function(ctx)
     return eval_content(src, name, ehead, ctx)
   end
-  return page
+  return M.new(path, meta, content)
 end
 
 function M.load(filename)
-  local page = M.loadstring(path.read(filename), '@' .. filename)
-  if not page.path then
-    local p = path.tourl(filename)
-    if p:find('/index%.html$') then
-      p = p:sub(1, -11)
-    end
-    page.path = p
+  local p = filename:match('^[^/]+(/.*)')
+  if p:find('/index%.html$') then
+    p = p:sub(1, -11)
   end
-  return page
-end
-
-function M.save(page, layout)
-  local p = page.path
-  if p:byte(-1) == 47 then -- slash
-    p = p .. 'index.html'
-  end
-  path.write(path.tosite(p), html.render(layout(page)))
-  page.content = nil
+  return M.loadstring(p, path.read(filename), '@' .. filename)
 end
 
 return M
