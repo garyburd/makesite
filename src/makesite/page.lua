@@ -15,9 +15,9 @@ local Page = {
 }
 Page.__index = Page
 
-function M.new(path, meta, content)
+function M.new(ppath, meta, content)
   return setmetatable({
-    path = path,
+    path = ppath,
     meta = meta or {},
     content = content or function()
       return false
@@ -151,13 +151,13 @@ local function eval_content(src, file, pos, ctx)
   end
 end
 
-function M.loadstring(path, src, name)
+function M.loadstring(ppath, src, name)
   name = name or '=(string)'
   local meta, ehead = eval_meta(src, name)
   local content = function(ctx)
     return eval_content(src, name, ehead, ctx)
   end
-  return M.new(path, meta, content)
+  return M.new(ppath, meta, content)
 end
 
 function M.load(filename)

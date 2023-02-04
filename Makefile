@@ -10,10 +10,10 @@ coverage:
 	luacov
 
 check:
-	luacheck --no-color --no-redefined --std lua54 src/makesite/*.lua test/*.lua dsrc/main.lua
+	luacheck --no-color --no-redefined --std lua54 src/makesite/*.lua test/*.lua example/main.lua
 
 docs:
-	lua dsrc/main.lua
+	lua example/main.lua
 
 serve:
 	python3 -m http.server --directory docs

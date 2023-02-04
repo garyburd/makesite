@@ -44,7 +44,7 @@ function Lightbox:content()
   assert(getmetatable(self) == Lightbox)
   return html.map(self.images, function(x)
     local img = x.img
-    return html.include{
+    return html.include {
       '\n',
       html.DIV {
         id = x.id,
@@ -53,7 +53,7 @@ function Lightbox:content()
         html.A { class = 'lbclose', href = '#_' },
         html.IMG { src = img.src, srcset = img.srcset },
         x.next and html.A { class = 'lbnext', href = '#' .. x.next } or false,
-      }
+      },
     }
   end)
 end

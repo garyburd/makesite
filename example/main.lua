@@ -5,9 +5,9 @@ local page = require('makesite.page')
 local Layout = {}
 Layout.__index = Layout
 
-local examplefile = 'dsrc/examples.lua'
-local examplesrc = path.read(examplefile)
-local examplemod = assert(load(examplesrc, examplefile))()
+local codefile = 'example/code.lua'
+local codesrc = path.read(codefile)
+local codemod = assert(load(codesrc, codefile))()
 
 function Layout:todest(p)
   return path.todest(self.page:abs(p))
@@ -17,11 +17,11 @@ function Layout:rel(p)
   return self.page:rel(p)
 end
 
-function Layout:example(name)
+function Layout:code(name)
   local _ = self
-  local arg, src = examplesrc:match('\nfunction M%.' .. name .. '%((.-)%)(.-)\nend')
+  local arg, src = codesrc:match('\nfunction M%.' .. name .. '%((.-)%)(.-)\nend')
   if not src then
-    error(string.format('could not find function M.%s(print) ... end in %s', name, examplefile))
+    error(string.format('could not find function M.%s(print) ... end in %s', name, codefile))
   end
   local ws = src:match('\n%s*')
   src = src:gsub(ws, '\n')
@@ -29,7 +29,7 @@ function Layout:example(name)
   local out = nil
   if arg == 'print' then
     out = {}
-    examplemod[name](function(...)
+    codemod[name](function(...)
       local args = table.pack(...)
       for i = 1, args.n do
         args[i] = tostring(args[i])
@@ -39,7 +39,7 @@ function Layout:example(name)
   end
   return html.include {
     html.PRE { src },
-    #out > 0 and html.include{'Output:\n', html.PRE { table.concat(out, '\n') }} or false,
+    #out > 0 and html.include { 'Output:\n', html.PRE { table.concat(out, '\n') } } or false,
   }
 end
 
@@ -91,4 +91,4 @@ function Layout.run(p)
 end
 
 path.dest = 'docs'
-page.load('dsrc/index.html'):save(Layout.run)
+page.load('example/index.html'):save(Layout.run)
