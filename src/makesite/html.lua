@@ -11,6 +11,10 @@ local html_escapes = {
 local function encode(write, value)
   if type(value) == 'function' then
     return value(write)
+  elseif type(value) == 'table' and getmetatable(value) == nil then
+    for _, v in ipairs(value) do
+      encode(write, v)
+    end
   elseif value then
     return write((tostring(value):gsub('[&><>]', html_escapes)))
   end
@@ -49,33 +53,15 @@ function M.raw(s)
   end
 end
 
-function M.include(list)
-  return function(write)
-    for _, v in ipairs(list) do
-      encode(write, v)
-    end
-  end
-end
-
-function M.map(list, fn, sep)
+function M.join(list, rawsep)
   assert(type(list) == 'table')
-  local n = 0
-  local mapped = {}
-  for _, v in ipairs(list) do
-    local m = fn(v)
-    if m then
-      n = n + 1
-      mapped[n] = m
-    end
-  end
-  if n == 0 then
-    return false
-  end
+  assert(type(rawsep) == 'string')
   return function(write)
-    encode(write, mapped[1])
-    for i = 2, n do
-      encode(write, sep)
-      encode(write, mapped[i])
+    local sep = ''
+    for _, v in ipairs(list) do
+      write(sep)
+      encode(write, v)
+      sep = rawsep
     end
   end
 end

@@ -69,4 +69,16 @@ function M.write(filename, data)
   file:close()
 end
 
+function M.update(filename, data)
+  local file = io.open(filename)
+  if file then
+    local eq = data == file:read('a')
+    file:close()
+    if eq then
+      return
+    end
+  end
+  M.write(filename, data)
+end
+
 return M

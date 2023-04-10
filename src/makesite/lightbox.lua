@@ -42,20 +42,22 @@ end
 
 function Lightbox:content()
   assert(getmetatable(self) == Lightbox)
-  return html.map(self.images, function(x)
-    local img = x.img
-    return html.include {
-      '\n',
+  local list = {}
+  for _, v in ipairs(self.images) do
+    local img = v.img
+    table.insert(
+      list,
       html.DIV {
-        id = x.id,
+        id = v.id,
         class = 'lightbox',
-        x.prev and html.A { class = 'lbprev', href = '#' .. x.prev } or false,
+        v.prev and html.A { class = 'lbprev', href = '#' .. v.prev } or false,
         html.A { class = 'lbclose', href = '#_' },
         html.IMG { src = img.src, srcset = img.srcset },
-        x.next and html.A { class = 'lbnext', href = '#' .. x.next } or false,
-      },
-    }
-  end)
+        v.next and html.A { class = 'lbnext', href = '#' .. v.next } or false,
+      }
+    )
+  end
+  return html.join(list, '\n')
 end
 
 return M

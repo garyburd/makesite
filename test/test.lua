@@ -86,14 +86,9 @@ local function run()
     [[<div a1="'" a2=&quot; a3="<&amp;" a4=foo a5></div>]]
   )
   expect(encode(html.raw('<>')), [[<>]])
-  expect(encode(html.include { '1', html.P { '2' }, html.P { 3 }, 4 }), [[1<p>2</p><p>3</p>4]])
   expect(encode(html.doc()), '<!DOCTYPE html>\n<html></html>\n')
-  expect(
-    encode(html.map({ 1, 2, 3 }, function(i)
-      return i
-    end, ', ')),
-    '1, 2, 3'
-  )
+  expect(encode(html.join({ 1, 2, 3 }, ', ')), '1, 2, 3')
+  expect(encode { 1, 2, 3 }, '123')
 
   local xml = html.xml
   expect(

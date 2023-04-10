@@ -30,7 +30,7 @@ function Page:save(layout)
   if p:byte(-1) == slashbyte then
     p = p .. 'index.html'
   end
-  assert(html.encodetofile(path.todest(p), layout(self)))
+  path.update(path.todest(p), html.encodetostring(layout(self)))
   self.content = nil
 end
 

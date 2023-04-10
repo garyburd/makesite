@@ -37,9 +37,9 @@ function Layout:code(name)
       out[#out + 1] = table.concat(args, '\t')
     end)
   end
-  return html.include {
+  return {
     html.PRE { src },
-    #out > 0 and html.include { 'Output:\n', html.PRE { table.concat(out, '\n') } } or false,
+    #out > 0 and { 'Output:\n', html.PRE { table.concat(out, '\n') } } or false,
   }
 end
 
