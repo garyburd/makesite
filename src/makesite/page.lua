@@ -30,7 +30,7 @@ function Page:save(layout)
   if p:byte(-1) == slashbyte then
     p = p .. 'index.html'
   end
-  path.update(path.todest(p), html.encodetostring(layout(self)))
+  path.update(path.todest(p), html.rendertostring(layout(self)))
   self.content = nil
 end
 
@@ -143,10 +143,10 @@ local function eval_content(src, file, pos, ctx)
 
   local values = assert(load(chunk, file, 't'))(ctx, args)
   return function(write)
-    local encode = html.encode
+    local render = html.render
     for i = 1, n do
       write(strings[i])
-      encode(write, values[i])
+      render(write, values[i])
     end
   end
 end

@@ -25,11 +25,21 @@ function M.wh(filename) --> width, height
   error(string.format('%s does not have a recognized file type', filename))
 end
 
+function M.src(page, src, img)
+  local w, h = M.wh(path.todest(page:abs(src)))
+  img = img or {}
+  img.width = w
+  img.height = h
+  img.src = src
+  return img
+end
+
 function M.srcset(page, glob, img)
+  img = img or {}
   local srcset = {}
   local maxw, maxh, maxsrc = 0, 0, nil
-  local fglob = path.todest(page:abs(glob))
-  for fname in path.glob(fglob) do
+  local dir, name = path.split(path.todest(page:abs(glob)))
+  for fname in path.find(dir, '-maxdepth', '1', '-name', name) do
     local w, h = M.wh(fname)
     local src = page:rel(path.fromdest(fname))
     srcset[#srcset + 1] = string.format('%s %dw', src, w)
@@ -40,8 +50,9 @@ function M.srcset(page, glob, img)
     end
   end
   if not maxsrc then
-    error('no image found for pattern ' .. fglob)
+    error(string.format('no image found for pattern %s/%s', dir, name))
   end
+  table.sort(srcset)
   img.src = maxsrc
   img.width = maxw
   img.height = maxh

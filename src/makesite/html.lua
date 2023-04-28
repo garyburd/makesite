@@ -8,38 +8,39 @@ local html_escapes = {
   ['>'] = '&gt;',
 }
 
-local function encode(write, value)
+local function render(write, value)
   if type(value) == 'function' then
     return value(write)
   elseif type(value) == 'table' and getmetatable(value) == nil then
+    -- render plain tables inline.
     for _, v in ipairs(value) do
-      encode(write, v)
+      render(write, v)
     end
   elseif value then
     return write((tostring(value):gsub('[&><>]', html_escapes)))
   end
 end
 
-M.encode = encode
+M.render = render
 
-function M.encodetostring(value)
+function M.rendertostring(value)
   local n = 0
   local output = {}
   local function write(s)
     n = n + 1
     output[n] = s
   end
-  encode(write, value)
+  render(write, value)
   return table.concat(output)
 end
 
-function M.encodetofile(filename, value)
+function M.rendertofile(filename, value)
   local f, e = io.open(filename, 'w+')
   if not f then
     return nil, e
   end
   local write = f.write
-  encode(function(s)
+  render(function(s)
     return write(f, s)
   end, value)
   f:close()
@@ -60,7 +61,7 @@ function M.join(list, rawsep)
     local sep = ''
     for _, v in ipairs(list) do
       write(sep)
-      encode(write, v)
+      render(write, v)
       sep = rawsep
     end
   end
@@ -71,7 +72,7 @@ local attr_escapes = {
   ['"'] = '&quot;',
 }
 
-local function encodeattrs(write, elem)
+local function renderattrs(write, elem)
   -- Sort attribute names for stable output.
   -- Skip attributes with false values.
   local names = {}
@@ -109,11 +110,11 @@ function M.define(key, empty)
     assert(type(elem) == 'table')
     return function(write)
       write(open)
-      encodeattrs(write, elem)
+      renderattrs(write, elem)
       write('>')
       if not empty then
         for _, v in ipairs(elem) do
-          encode(write, v)
+          render(write, v)
         end
         write(close)
       end
@@ -147,7 +148,7 @@ setmetatable(M, {
   end,
 })
 
-local function encodexmlattrs(write, elem)
+local function renderxmlattrs(write, elem)
   -- Sort attribute names for stable output.
   local names = {}
   for name in pairs(elem) do
@@ -169,7 +170,7 @@ setmetatable(M.xml, {
   __call = function(_, root)
     return function(write)
       write('<?xml version="1.0" encoding="UTF-8" ?>')
-      encode(write, root)
+      render(write, root)
       write('\n')
     end
   end,
@@ -180,13 +181,13 @@ setmetatable(M.xml, {
       elem = elem or empty_elem
       return function(write)
         write(open)
-        encodexmlattrs(write, elem)
+        renderxmlattrs(write, elem)
         if elem[1] == nil then
           write('/>')
         else
           write('>')
           for _, v in ipairs(elem) do
-            encode(write, v)
+            render(write, v)
           end
           write(close)
         end

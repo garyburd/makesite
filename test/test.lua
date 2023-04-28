@@ -72,30 +72,35 @@ function Layout.run(p)
 end
 
 local function run()
-  local encode = html.encodetostring
+  local render = html.rendertostring
 
   --expect(html.escape('A<B>C&D'), 'A&lt;B&gt;C&amp;D')
-  expect(encode(html.HR()), '<hr>')
+  expect(render(html.HR()), '<hr>')
   expect(
-    encode(html.DIV { data_example = 20, 'foo', html.P { 'bar' }, 'quux' }),
+    render(html.DIV { data_example = 20, 'foo', html.P { 'bar' }, 'quux' }),
     [[<div data-example=20>foo<p>bar</p>quux</div>]]
   )
-  expect(encode('<>&'), '&lt;&gt;&amp;')
+  expect(render('<>&'), '&lt;&gt;&amp;')
   expect(
-    encode(html.DIV { a1 = "'", a2 = '"', a3 = '<&', a4 = 'foo', a5 = true }),
+    render(html.DIV { a1 = "'", a2 = '"', a3 = '<&', a4 = 'foo', a5 = true }),
     [[<div a1="'" a2=&quot; a3="<&amp;" a4=foo a5></div>]]
   )
-  expect(encode(html.raw('<>')), [[<>]])
-  expect(encode(html.doc()), '<!DOCTYPE html>\n<html></html>\n')
-  expect(encode(html.join({ 1, 2, 3 }, ', ')), '1, 2, 3')
-  expect(encode { 1, 2, 3 }, '123')
+  expect(render(html.raw('<>')), [[<>]])
+  expect(render(html.doc()), '<!DOCTYPE html>\n<html></html>\n')
+  expect(render(html.join({ 1, 2, 3 }, ', ')), '1, 2, 3')
+  expect(render { 1, 2, 3 }, '123')
 
   local xml = html.xml
   expect(
-    encode(xml(xml.rss { version = '2.0', xml.channel { xml.title { 'my feed' } } })),
+    render(xml(xml.rss { version = '2.0', xml.channel { xml.title { 'my feed' } } })),
     '<?xml version="1.0" encoding="UTF-8" ?><rss version="2.0"><channel><title>my feed</title></channel></rss>\n'
   )
 
+  do
+    local dir, file = path.split('/foo/bar')
+    expect(dir, '/foo')
+    expect(file, 'bar')
+  end
   expect(path.fromdest(path.dest .. '/file.html'), '/file.html')
   expect(path.todest('/file.html'), 'site/file.html')
   expect(page.new('/'):abs('img.jpg'), '/img.jpg')
@@ -123,7 +128,7 @@ local function run()
   local p = page.loadstring('/index.html', src)
   expect(p.meta.message, 'world')
   expect(p.meta.count, 10)
-  expect(encode(Layout.run(p)), '<!DOCTYPE html>\n<html><body>Hello world!\n</body></html>\n')
+  expect(render(Layout.run(p)), '<!DOCTYPE html>\n<html><body>Hello world!\n</body></html>\n')
 
   --p = page.load('test/data/page.x.html')
 
